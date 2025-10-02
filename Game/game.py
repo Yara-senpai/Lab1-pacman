@@ -9,6 +9,12 @@ class Game:
     def __init__(self, map: Map, ghosts: List[Ghost], pacman: Pacman):
         self.is_updating = False
         self.difficulty = 5
+        self.ghost_steps_per_sec = 6
+        self.pacman_steps_per_sec = 6
+
+        self.points_target_base = 100
+        self.points_target_step = 10
+        self.points_target = self.points_target_base
 
         self.map: Map = map
         self.pacman = pacman
@@ -34,7 +40,9 @@ class Game:
 
         self.frame = 0
 
+        self.points_target = self.points_target_base + (self.difficulty - 1) * self.points_target_step
         self.is_updating = True
+
 
     def restart_game(self):
         self.is_updating = False
@@ -114,6 +122,13 @@ class Game:
                                     anchor_x='right', anchor_y='top')
             ghost_state.draw()
 
+        target = pyglet.text.Label(f"Target: {self.points_target}",
+                                   font_name='Arial',
+                                   font_size=10,
+                                   x=0, y=self.map.size * tile_size - 54,
+                                   anchor_x='left', anchor_y='top')
+        target.draw()
+
 
         score.draw()
         lives.draw()
@@ -124,7 +139,8 @@ class Game:
         if not self.is_updating:
             return
 
-        if self.frame % (60 // ((self.difficulty * 2)+5)) == 0:
+        # стало (фіксована швидкість привидів, не залежить від difficulty)
+        if self.frame % 5 == 0:
             for i, ghost in enumerate(self.ghosts):
                 ghost.move(self.map)
                 self.map.ghosts_positions[i] = (ghost.x, ghost.y)
@@ -139,6 +155,10 @@ class Game:
             self.map.pacman_direction = getattr(self.pacman, "current_direction", 0)
 
             if self.map.is_apple_map_empty():
+                self.next_level()
+                return
+                # --- НОВЕ: перехід рівня за набраними очками ---
+            if self.pacman.score >= self.points_target:
                 self.next_level()
                 return
             if self.pacman.did_die:
